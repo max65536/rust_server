@@ -5,15 +5,19 @@ use std::{
     thread,
     time::Duration,
 };
+
+use rust_server::ThreadPool;
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    for stream in listener.incoming(){
+    let pool = ThreadPool::new(4);
+    for stream in listener.incoming().take(6){
         let stream = stream.unwrap();
 
-        thread::spawn(||{
+        pool.execute(||{
             handle_connection(stream);
         });
     }
+    println!("Shutting down.");
 }
 
 fn handle_connection(mut stream: TcpStream){
@@ -44,4 +48,5 @@ fn handle_connection(mut stream: TcpStream){
         format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
 
     stream.write_all(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
